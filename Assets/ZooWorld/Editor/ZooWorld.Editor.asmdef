@@ -1,0 +1,5 @@
+{
+  "name": "ZooWorld.Editor",
+  "references": ["ZooWorld.Runtime"],
+  "includePlatforms": ["Editor"]
+}

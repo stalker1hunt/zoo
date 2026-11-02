@@ -1,0 +1,30 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Bb]uild/
+[Bb]uilds/
+.vs/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+TestResults/*.log
+
+TestResults/
+Assets/LocalValidation/
+Assets/LocalValidation.meta
+Assets/ZooWorld/Tests/
+Assets/ZooWorld/Tests.meta
+Assets/ZooWorld/Runtime/Diagnostics/
+Assets/ZooWorld/Runtime/Diagnostics.meta
+
+/Open Unity.cmd
+/Open Rider.cmd
