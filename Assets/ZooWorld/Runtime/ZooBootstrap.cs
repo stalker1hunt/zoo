@@ -13,6 +13,7 @@ namespace ZooWorld
         [SerializeField] private ZooHud hud;
         private IWorldBounds bounds;
         private IAnimalSpawner spawner;
+        private IAnimalFactory factory;
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -27,11 +28,13 @@ namespace ZooWorld
             builder.Register<AnimalPopulationService>(Lifetime.Singleton).As<IAnimalLifecycle, IAnimalPopulation>();
             builder.Register<AnimalCollisionService>(Lifetime.Singleton)
                 .As<IAnimalCollisions>().WithParameter("preyKnockbackSpeed", 5.5f);
-            builder.Register<AnimalSpawnService>(Lifetime.Singleton)
-                .As<IAnimalSpawner>().WithParameter("animalParent", animalRoot);
+            builder.Register<PooledAnimalFactory>(Lifetime.Singleton)
+                .As<IAnimalFactory>().WithParameter("animalParent", animalRoot);
+            builder.Register<AnimalSpawnService>(Lifetime.Singleton).As<IAnimalSpawner>();
             builder.RegisterBuildCallback(container =>
             {
                 bounds = container.Resolve<IWorldBounds>();
+                factory = container.Resolve<IAnimalFactory>();
                 spawner = container.Resolve<IAnimalSpawner>();
                 hud.Initialize(container.Resolve<IAnimalPopulation>(), container.Resolve<IAnimalCollisions>(), worldCamera);
             });
@@ -41,6 +44,7 @@ namespace ZooWorld
         {
             if (bounds == null) return;
             bounds.Refresh();
+            factory.FlushReturns();
             spawner.Tick(Time.deltaTime);
         }
 

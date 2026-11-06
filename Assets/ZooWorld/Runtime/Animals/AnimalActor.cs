@@ -57,12 +57,12 @@ namespace ZooWorld
             transform.SetPositionAndRotation(position, rotation);
             movement.Initialize(species.MovementSettings);
             movement.ResetState();
-            gameObject.SetActive(true);
             body.position = position;
             body.rotation = rotation;
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             body.detectCollisions = true;
+            gameObject.SetActive(true);
             body.WakeUp();
         }
 

@@ -17,9 +17,11 @@ namespace ZooWorld
 
         public override void ValidateConfiguration()
         {
-            if (!(distance > 0f) || !(duration > 0f) || !(restDuration >= 0f) || !(height >= 0f)
+            // Match the authoring minimum: subnormal durations can stop the fixed-step
+            // integrator from making floating-point progress when it subtracts a segment.
+            if (!(distance > 0f) || !(duration >= 0.1f) || !(restDuration >= 0f) || !(height >= 0f)
                 || float.IsInfinity(distance + duration + restDuration + height))
-                throw new InvalidOperationException("Hop settings need finite positive distance/duration and nonnegative rest/height.");
+                throw new InvalidOperationException("Hop settings need finite positive distance, duration >= 0.1 seconds and nonnegative rest/height.");
         }
     }
 }

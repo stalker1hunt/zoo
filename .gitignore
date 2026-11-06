@@ -21,8 +21,6 @@ TestResults/*.log
 TestResults/
 Assets/LocalValidation/
 Assets/LocalValidation.meta
-Assets/ZooWorld/Tests/
-Assets/ZooWorld/Tests.meta
 Assets/ZooWorld/Runtime/Diagnostics/
 Assets/ZooWorld/Runtime/Diagnostics.meta
 

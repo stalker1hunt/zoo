@@ -1,93 +1,41 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Pool;
-using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace ZooWorld
 {
+    // Decides when, what and where to spawn. The factory owns how actors are created.
     public class AnimalSpawnService : IAnimalSpawner
     {
-        private readonly Transform parent;
         private readonly IAnimalDatabase database;
         private readonly IWorldBounds bounds;
-        private readonly IAnimalCollisions collisions;
-        private readonly IAnimalLifecycle lifecycle;
-        private readonly Dictionary<AnimalDefinition, ObjectPool<AnimalActor>> pools = new Dictionary<AnimalDefinition, ObjectPool<AnimalActor>>();
-        private readonly List<AnimalActor> pendingReturns = new List<AnimalActor>();
-        private readonly Action<AnimalActor> queueReturn;
+        private readonly IAnimalFactory factory;
         private float timeUntilSpawn;
         private bool disposed;
 
-        public AnimalSpawnService(Transform animalParent, IAnimalDatabase animalDatabase, IWorldBounds worldBounds,
-            IAnimalCollisions collisionService, IAnimalLifecycle population)
+        public AnimalSpawnService(IAnimalDatabase animalDatabase, IWorldBounds worldBounds, IAnimalFactory animalFactory)
         {
-            parent = animalParent;
-            database = animalDatabase;
-            bounds = worldBounds;
-            collisions = collisionService;
-            lifecycle = population;
-            queueReturn = pendingReturns.Add;
+            database = animalDatabase ?? throw new ArgumentNullException(nameof(animalDatabase));
+            bounds = worldBounds ?? throw new ArgumentNullException(nameof(worldBounds));
+            factory = animalFactory ?? throw new ArgumentNullException(nameof(animalFactory));
             timeUntilSpawn = Random.Range(1f, 2f);
         }
 
         public void Tick(float deltaTime)
         {
             if (disposed) return;
-            ReleasePending();
+            if (deltaTime < 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
+                throw new ArgumentOutOfRangeException(nameof(deltaTime));
             timeUntilSpawn -= deltaTime;
             if (timeUntilSpawn > 0f) return;
             AnimalDefinition definition = database.Definitions[Random.Range(0, database.Definitions.Count)];
             float angle = Random.Range(0f, Mathf.PI * 2f);
-            Spawn(definition, bounds.RandomPosition(), new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)));
+            factory.Spawn(definition, bounds.RandomPosition(), new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)));
+            // Do not burst-spawn to catch up after a stall: the next animal gets a new interval.
             timeUntilSpawn = Random.Range(1f, 2f);
         }
 
-        private void Spawn(AnimalDefinition definition, Vector3 position, Vector3 direction)
-        {
-            if (!pools.TryGetValue(definition, out ObjectPool<AnimalActor> pool))
-            {
-                definition.ValidateConfiguration();
-                pool = new ObjectPool<AnimalActor>(() =>
-                {
-                    AnimalActor animal = Object.Instantiate(definition.Prefab, parent);
-                    animal.gameObject.SetActive(false);
-                    return animal;
-                }, actionOnDestroy: animal => { if (animal != null) Object.Destroy(animal.gameObject); },
-                    collectionCheck: true, defaultCapacity: 16, maxSize: 10000);
-                pools.Add(definition, pool);
-            }
-            AnimalActor instance = pool.Get();
-            try
-            {
-                instance.Activate(definition, position, direction, bounds, collisions, lifecycle, queueReturn);
-                lifecycle.Register(instance);
-            }
-            catch
-            {
-                if (!lifecycle.TryRemove(instance, false)) instance.ReturnToPool();
-                throw;
-            }
-        }
-
-        public void Dispose()
-        {
-            if (disposed) return;
-            disposed = true;
-            lifecycle.Clear();
-            ReleasePending();
-            foreach (ObjectPool<AnimalActor> pool in pools.Values) pool.Dispose();
-            pools.Clear();
-        }
-
-        private void ReleasePending()
-        {
-            // Tick is called by Bootstrap.Update, after PhysX has delivered the current contacts.
-            // A synchronous respawn from an event cannot reuse a victim during that callback batch.
-            foreach (AnimalActor animal in pendingReturns)
-                if (animal != null) pools[animal.Definition].Release(animal);
-            pendingReturns.Clear();
-        }
+        // The composition root owns the factory lifetime, not this scheduling policy.
+        public void Dispose() => disposed = true;
     }
 }
